@@ -1,0 +1,22 @@
+# 系统与编辑器
+Thumbs.db
+.DS_Store
+desktop.ini
+*.swp
+*~
+.vscode/
+.idea/
+
+# 敏感信息（绝不入库）
+*.key
+*.pem
+*secret*
+.env
+.env.*
+id_rsa
+id_ed25519
+
+# 临时与日志
+*.log
+*.tmp
+tmp/
