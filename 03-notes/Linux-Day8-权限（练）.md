@@ -110,3 +110,42 @@ sudo rm -f /tmp/wheel-readable
 > 若仍报"进程占用"，先退出所有 test8 的 shell，再执行；`userdel -f -r` 可强制（但会跳过检查，慎用）。
 
 **清理结果（2026-11-19 22:44 实测）**：`sudo pkill -u test8` 后 `ps -u test8` 只剩表头；`sudo userdel -r test8` 成功；`id test8` → `无此用户`；`ls -d /home/test8` → 不存在；`/tmp/wheel-readable` 已删除。实验环境干净。
+
+---
+
+## 六、附：`ps` / `pkill` 小结（清理实验用到的）
+
+> 来源：手机端整理（2026-11-19）；正好与 Day 9「进程与系统」衔接。
+
+### `ps`：进程快照
+
+- `ps`：当前终端的进程快照
+- `ps -u 用户名`：只列出属主为该用户的进程
+- 表头字段：
+
+| 字段 | 含义 |
+|---|---|
+| PID | 进程唯一编号，`kill` 杀进程时用 |
+| TTY | 终端：`pts` 是虚拟终端，`?` 表示没有终端 |
+| TIME | 进程**累计占用 CPU 的时间**，不是墙钟运行时长 |
+| CMD | 启动该进程的命令 |
+
+- 输出为空 = 该用户没有进程在跑
+- 想看"墙上时间"对比 CPU 时间，用 `ps -o pid,etime,time,cmd -u 用户名`（`etime` 是已运行时长，`time` 是累计 CPU）
+
+### `pkill`：按条件批量结束进程
+
+- `pkill -u 用户名`：结束该用户的所有进程（默认发 `SIGTERM`，进程可自行清理并退出）
+- 进程不响应时：`pkill -9 -u 用户名`（`SIGKILL`，强杀，进程无法拦截）
+- 实验用途：清掉 test8 的登录 shell/会话，释放心资源，为 `userdel -r` 铺路
+
+### 配套流程（本次实测）
+
+1. `sudo pkill -u test8` —— 清进程
+2. `sleep 1` —— 等进程真正退出
+3. `ps -u test8` —— 确认无进程（只剩表头）
+4. `sudo userdel -r test8` —— 删除用户
+5. 若有残留进程，`userdel` 会报 `user ... is currently used by process ...`，删除失败
+
+补充：`ps -u` 看的是**进程归属**，不依赖 utmp，所以能查到 `su` 出来的 shell；`who` 只读 utmp，看不到这类会话。
+
