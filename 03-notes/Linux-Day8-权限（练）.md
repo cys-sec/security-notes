@@ -108,3 +108,5 @@ sudo rm -f /tmp/wheel-readable
 ```
 
 > 若仍报"进程占用"，先退出所有 test8 的 shell，再执行；`userdel -f -r` 可强制（但会跳过检查，慎用）。
+
+**清理结果（2026-11-19 22:44 实测）**：`sudo pkill -u test8` 后 `ps -u test8` 只剩表头；`sudo userdel -r test8` 成功；`id test8` → `无此用户`；`ls -d /home/test8` → 不存在；`/tmp/wheel-readable` 已删除。实验环境干净。
