@@ -86,8 +86,10 @@ systemctl --failed
      Memory: 3.7M
 ```
 
-- `systemctl --failed` 命中 1 个：**`acelog.service`（Machine Check Exception Logging Daemon）**，状态 `loaded failed failed`
-- 该服务在 VMware 虚拟机里失败是常见现象（没有真实 MCE 硬件/对应设备），属于"可以确认无害的失败"——但要先看原因再下结论：`systemctl status acelog --no-pager`、`journalctl -u acelog -n 20 --no-pager`
+- `systemctl --failed` 命中 1 个：**`mcelog.service`（Machine Check Exception Logging Daemon）**，状态 `loaded failed failed`
+- 失败原因（`journalctl -u mcelog -n 20` 实测）：`mcelog: ERROR: AMD Processor family 23: mcelog does not support this processor. Please use the edac_mce_amd module instead.` + `CPU is unsupported` → `main process exited, code=exited, status=1/FAILURE`
+- 这台是 AMD 平台（family 23 = Zen/Zen+/Zen2），而 mcelog 只支持部分 Intel CPU；日志里也直接建议改用 `edac_mce_amd` 内核模块。所以失败属**预期行为**，不是系统故障
+- 排查坑：`systemctl status acelog` 报 `could not be found`、`journalctl -u acelog` 报 `No entries` —— 说明单元名写错（正确是 `mcelog`）；确认名字最稳的方式是先 `systemctl list-units --failed`
 
 ---
 
@@ -140,6 +142,6 @@ uptime
 ## 八、结论
 
 1. 六条命令全部跑通；系统状态健康（sshd running、负载很低、内存充足）。
-2. `systemctl --failed` 命中的 `acelog.service` 与 `journalctl -p err` 里的 SMBus 告警，都是**虚拟机环境无害项**，但排查流程要记住：先看状态/日志再判断。
+2. `systemctl --failed` 命中的 `mcelog.service` 与 `journalctl -p err` 里的 SMBus 告警，都是**虚拟机环境无害项**，但排查流程要记住：先看状态/日志再判断。
 3. 日志持久化验证成功：跨重启的 sshd 记录可查（11/19 → 11/20）。
 4. 排查工具组合：`ps --forest` 定位进程父子关系、`jobs -l` 看后台作业、`systemctl --failed` + `journalctl -p err -b` 做快速体检。
