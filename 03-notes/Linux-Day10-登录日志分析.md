@@ -124,3 +124,46 @@ rocky   tty1                            Fri Nov 20 23:15 - 23:19  (00:03)
 
 - [ ] 用户名改名 rocky → cys（需控制台/临时管理员方式，见 Day 9 后续讨论）
 - [ ] 排查 11/20–11/21 的 crash 记录（`journalctl -b -1 -p err`）
+
+---
+
+## 九、手机端知识点汇总（2026-11-21 晚整理）
+
+> 来源：手机端整理（覆盖 Day 9 进程 + Day 10 日志）；已与仓库笔记合并。带 ⚠️ 的是补充的精确说明。
+
+### 1. 进程查看与管理
+
+- `ps` 输出字段：PID/PPID、TTY（`pts` 虚拟终端、`?` 无终端）、TIME（累计 CPU 时间，不是墙钟）、CMD
+  - **语法**：`ps [选项]`；`-eo 字段列表` 自定义列（如 `ps -eo pid,ppid,etime,cmd`）
+- `top`：交互式监控，看 load average、CPU/内存、进程；快捷键 `P`（CPU 排序）、`M`（内存排序）、`1`（每核）、`q`（退出）
+- `kill PID`（默认 SIGTERM）/ `kill -9`（SIGKILL 强杀）/ `kill %1`（**作业号**，只对当前 shell 的作业有效）/ `pkill -u 用户`（按用户批量结束）
+- ⚠️ `load average` 的准确含义：**可运行 + 不可中断睡眠（D 状态）任务的平均数**（1/5/15 分钟指数衰减），不是单纯的"等待 CPU 的任务数"；单核 load 1.0 ≈ 满载。
+
+### 2. 日志与 SSH 登录排查
+
+- `journalctl -u sshd`：按服务过滤；`--since` 时间范围；`--no-pager` 不进分页；`-p` 按优先级过滤
+- `grep` 组合：`-c` 统计行数、`-n` 带行号、`-l` 只输出有匹配的**文件名**（多文件场景才有意义）、`-E 'A|B'` 扩展正则"或"、`-oE` 只提取匹配片段
+- `awk` 提取字段：`NF` 一行总字段数、`$NF` 最后一列；sshd `Accepted` 行用 `$(NF-5)` 取用户名、`$(NF-3)` 取来源 IP（**依赖消息格式固定**，换日志类型要重新数）
+- `last`（读 wtmp，成功登录）/ `lastb`（读 btmp，失败登录，需 root）/ `lastlog`（各用户最后一次登录）
+- `w` 对比 `who`/`last`：`w` 多显示"正在执行的命令 + 负载/空闲时间"
+- ⚠️ `last` 里的 `crash` = 这次关机**没有正常记录 shutdown**（非正常断电/强制重置/崩溃），不是"某个程序崩溃"。
+
+### 3. 用户、主机名与终端
+
+- 提示符 `用户@主机`；root 提示符 `#`、普通用户 `$`
+- 改用户名：**必须先清掉该用户的进程/会话**（否则 `usermod: user ... is currently used by process ...`），再配套改家目录、主组；从独立 root 会话（控制台或临时管理员）操作
+- `exit`：root shell 里退回原普通用户；普通用户 exit 即关闭会话
+
+### 4. 服务与权限
+
+- `systemctl`：管理系统服务（`status`/`start`/`stop`/`restart`/`enable`/`disable`）
+- `chown`：改文件属主/属组；`chmod -R`：递归改权限
+- `ls -d`：看目录本身而不是目录内容（配合 `*/` 通配时尤其有用）
+
+### 5. 星期缩写
+
+`Mon`、`Tue`、`Wed`、`Thu`、`Fri`、`Sat`、`Sun`（`last`、`date` 等输出里常见）
+
+### 6. 一句话串记
+
+> `top/ps/w` 看进程在线；`journalctl + grep/awk` 抓 SSH 日志；`last/lastb` 查登录成败；改用户先清进程；`exit` 分层退出。
