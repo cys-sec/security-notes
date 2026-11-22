@@ -136,7 +136,17 @@ curl -sS -o /dev/null -w '%{http_code}\n' http://10.0.0.1
 
 实测：`curl -I https://example.com` → **`HTTP/2 200`**（外网通，NAT 正常），响应头里有 `server: cloudflare`、`cf-cache-status: HIT`。
 
-`curl http://10.0.0.1` 卡住（你按了两次 `^C`）：宿主机**没有 80 端口的 HTTP 服务**，所以连不上——不是命令写错，而是"目标没有那个服务"；加 `--connect-timeout 3` 会更快返回超时错误（curl 退出码 28）。
+`curl http://10.0.0.1` 的结果：
+
+```text
+000
+curl: (7) Failed to connect to 10.0.0.1 port 80: Connection timed out
+```
+
+- `000` 是 `-w %{http_code}` 的输出：**没有拿到任何 HTTP 响应**
+- `curl (7)` = 连接失败；**`Connection timed out` 表示包被丢弃**（防火墙 DROP/NAT 丢弃），而不是"对方拒绝"
+- 对比：主机可达但端口没有服务监听时，会立刻返回 **`Connection refused`**（对方用 RST 明确拒绝）——同样是 exit 7，但原因不同
+- 想确认"宿主某个端口是否可达"，拿一个**确定开放的端口**测 TCP：`curl --connect-timeout 3 -v http://10.0.0.1:22`（连上后协议不符会报错，但能连上就证明 TCP 通）
 
 ---
 
