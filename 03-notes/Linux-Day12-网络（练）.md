@@ -126,3 +126,51 @@ journalctl -u sshd -n 10 --no-pager
 
 - [ ] 用户名改名 rocky → cys（需控制台/临时管理员）
 - [ ] crash 记录持续观察（`last -x | head`、`journalctl -b -1 -p err`）
+
+---
+
+## 七、手机端知识点汇总（2026-11-23）
+
+> 来源：手机端整理（当日晚）；已与本笔记合并。⚠️ 为补充/修正。
+
+### 1. ss / 网络连接查看
+
+- `ss -tlnp`：`Local Address:Port` 是本机端、`Peer Address:Port` 是对端
+- `0.0.0.0:22` = 所有 IPv4 接口监听 22；`[::]:22` = 所有 IPv6 接口
+- `LISTEN` 监听、`ESTAB` 连接已建立
+- `ss -tunp` 输出里的 `Netid` 列 = 协议标识（`tcp` / `udp`），区分连接类型
+- SSH 那条 ESTAB：Local `10.0.0.150:22`、Peer `10.0.0.1:59860`、进程 `sshd`
+
+### 2. IP、邻居与路由
+
+- `ip neigh`（可简写 `ip n`）：同网段邻居表（IP ↔ MAC）
+  - `REACHABLE` = 二层已拿到 MAC、链路可达；`INCOMPLETE` = ARP 无回应
+- ⚠️ 二层可达 **≠** IP/DNS/应用一定通；反过来"ping 不通"也不代表网络断——**本机实测：`ping 10.0.0.1` 100% 丢包，但 SSH 连接正常**（ICMP 被宿主机防火墙拦）
+- `ip route get 8.8.8.8`：查实际路由路径，出现 `via` 就是网关
+- ⚠️ **修正**：这台机器的网关是 **`10.0.0.2`**（VMware NAT：`default via 10.0.0.2`），`10.0.0.1` 是宿主机（VMnet8 网卡），**不是网关**；判断网关一律以 `ip route` 的 `default via` 为准，别按"同网段 .1 就是网关"猜
+- 网关是内网出口；跳出公网 IP 才算出外网 ✓
+
+### 3. traceroute
+
+- 输出：跳号 + IP + 三次时延；`* * *` = 该跳无应答
+- 第一跳内网 IP 通常是网关；后面出现公网 IP 代表离开内网
+- ⚠️ 本机实测 `traceroute -n 10.0.0.1` 全 `* * *`：ICMP/UDP 被过滤时就是这样，换 `-T`（TCP 探测）或 `tracepath`
+- traceroute 通 ≠ DNS 通：它走 IP/ICMP，DNS 是另一个服务 ✓
+
+### 4. curl 客户端测试
+
+- `-I` 只拿响应头；`-sS` 静默但保留错误；`-o /dev/null` 丢弃正文；`-w '...\n'` 自定义输出
+- `%{http_code}` 状态码、`%{time_total}` 总耗时（秒）、`\n` 换行、`--connect-timeout n` 连接超时
+- `-v` 详细调试：依次看到 DNS → TCP → TLS → HTTP
+- 输出 `200 2.13` = HTTP 请求成功 + 总耗时
+
+### 5. 排查链路（分层）
+
+- 精简链：`ping → ip route get → traceroute / ip neigh → getent → curl -I`
+- 分层理解：
+  - `ping`：IP 是否可达（注意 ICMP 可能被过滤）
+  - `ip route get`：路由对不对、走哪个网关
+  - `traceroute`：卡在哪一跳；`ip neigh`：二层邻居/MAC
+  - `getent`：域名 DNS 解析
+  - `curl`：HTTP/HTTPS 应用层验证
+- 一句话串：网卡/二层邻居 → 路由网关 → DNS → 逐跳 → TCP 端口 → curl 应用层
