@@ -30,8 +30,12 @@
 
 | Day | 主题 | 笔记 |
 |---|---|---|
+| 1 | 文件与目录 | [Day1](03-notes/Linux-Day1-文件与目录.md) |
 | 2 | 文件与目录（练） | [Day2](03-notes/Linux-Day2-复盘-2026-11-13.md) |
+| 3 | 查找与查看 | [Day3](03-notes/Linux-Day3-查找与查看.md) |
 | 4 | 查找与查看（练） | [Day4](03-notes/Linux-Day4-复盘-2026-11-15.md) |
+| 5 | 文本处理 | [Day5](03-notes/Linux-Day5-文本处理.md) |
+| 6 | 文本处理（练） | [Day6](03-notes/Linux-Day6-文本处理（练）.md) |
 | 7 | 权限与用户 | [Day7](03-notes/Linux-Day7-权限与用户.md) |
 | 8 | 权限（练） | [Day8](03-notes/Linux-Day8-权限（练）.md) |
 | 9 | 进程与系统 | [Day9](03-notes/Linux-Day9-进程与系统.md) |

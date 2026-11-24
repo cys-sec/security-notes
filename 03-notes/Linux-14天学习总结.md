@@ -10,12 +10,12 @@
 
 | Day | 日期 | 主题 | 计划任务 | 实践反馈（关键发现 / 踩坑） | 笔记 |
 |---|---|---|---|---|---|
-| 1 | 11/12 | 文件与目录 | `pwd/ls/cd/cp/mv/rm` 各用一遍 | 建 `~/linux-practice/{src,dst}`，复制/改名/删除；**删前先 `ls`** | 手账 day1 段 |
+| 1 | 11/12 | 文件与目录 | `pwd/ls/cd/cp/mv/rm` 各用一遍 | 建 `~/linux-practice/{src,dst}`，复制/改名/删除；**删前先 `ls`** | [Day1](Linux-Day1-文件与目录.md) |
 | 2 | 11/13 | 文件与目录（练） | 复制 `/etc`、改名、删除 | 普通用户 `cp -r /etc` 只拷到 **87 项**；`su` 不带 `-` 使 `~` 指 `/root`；`cp` 目标不存在会"铺开"内容；最终 `sudo mv` 得 `etc-full`，`diff` 仅剩 6 条相对软链失效 | [Day2](Linux-Day2-复盘-2026-11-13.md) |
-| 3 | 11/14 | 查找与查看 | `find/which/file/cat/less/head` | `which sshd`→`/usr/sbin/sshd`；`find -name` 必须加引号；`file mtab` 报 **broken symbolic link**（印证 Day2）；`services` 有 **11473 行**；非交互 `sudo` 需 `-t` 或 `-S` | 手账 day3 段 |
+| 3 | 11/14 | 查找与查看 | `find/which/file/cat/less/head` | `which sshd`→`/usr/sbin/sshd`；`find -name` 必须加引号；`file mtab` 报 **broken symbolic link**（印证 Day2）；`services` 有 **11473 行**；非交互 `sudo` 需 `-t` 或 `-S` | [Day3](Linux-Day3-查找与查看.md) |
 | 4 | 11/15 | 查找与查看（练） | 找 `.conf`、用 `less` 看日志 | 副本**过期**：副本 91 vs 真实 **112** 个 `.conf`；`rpm -q --last` 定因为 11/14 装了 open-vm-tools/fuse/fontconfig；`sudo cp -a /etc/.` 后对齐 112；`/var/log/messages` 不存在 → 改用 `journalctl` | [Day4](Linux-Day4-复盘-2026-11-15.md) |
-| 5 | 11/16 | 文本处理 | `grep/sed/awk/cut` | 重点 `awk` 按列；用 `split` 统计协议；发现 **journald 默认不持久**（`/run/log/journal`，重启即丢） | 手账 day5 段 |
-| 6 | 11/17 | 文本处理（练） | 日志统计练习 | 完成"**爆破源 Top5**"：`journalctl` + `awk` + `sort/uniq`；Top1 仅 **3 次**、来源 `10.0.0.150`（自己）；60 分钟练习验证 | [任务2](../02-security/任务2-爆破源Top5.md) |
+| 5 | 11/16 | 文本处理 | `grep/sed/awk/cut` | 重点 `awk` 按列；用 `split` 统计协议；发现 **journald 默认不持久**（`/run/log/journal`，重启即丢） | [Day5](Linux-Day5-文本处理.md) |
+| 6 | 11/17 | 文本处理（练） | 日志统计练习 | 完成"**爆破源 Top5**"：`journalctl` + `awk` + `sort/uniq`；Top1 仅 **3 次**、来源 `10.0.0.150`（自己）；60 分钟练习验证 | [Day6](Linux-Day6-文本处理（练）.md) · [任务2](../02-security/任务2-爆破源Top5.md) |
 | 7 | 11/18 | 权限与用户 | `umask/chmod/chown/useradd/usermod/passwd` | `umask 0002` → 新建文件 664、目录 775；`chown` 必须 sudo；`useradd -m` + `chpasswd`；`usermod -aG wheel` 后 `id` 出现 `10(wheel)`、`sudo -l -U` 得 `(ALL) ALL`；`userdel -r` 清理 | [Day7](Linux-Day7-权限与用户.md) |
 | 8 | 11/19 | 权限（练） | 验证组变更是否需要重登录 | **旧会话里 `id`/`cat`/`sudo` 全部无效，重登录后全部生效**（三样都验证了）；`test8` 用户实验后清理 | [Day8](Linux-Day8-权限（练）.md) |
 | 9 | 11/20 | 进程与系统 | `ps/top/kill/systemctl/journalctl/uptime` | `ps aux --sort` 找高 CPU；发现"循环 `sleep 1`"其实是 **FinalShell 面板每秒轮询**（别 kill）；`systemctl --failed` 查出 `mcelog.service` 失败（AMD family 23 不支持，预期内） | [Day9](Linux-Day9-进程与系统.md) |
@@ -65,7 +65,7 @@ RHEL8 没有 `/var/log/messages`、`/var/log/secure`；日志在 **journald**，
 
 | 项 | 情况 | 建议 |
 |---|---|---|
-| Day 1 / 3 / 5 / 6 无独立笔记 | 内容在 `01-linux/命令手账.md` 与打卡表备注里 | 各补一篇 20 行的 `Linux-DayN-*.md`，保持 14 篇齐全 |
+| ~~Day 1 / 3 / 5 / 6 无独立笔记~~ | **已补齐（2026-11-24）**：Day1/3/5/6 四篇已按当时真实输出还原 | — |
 | 主机名不一致 | 早期笔记写 `rocky@rocky` 或 `rocky@cycs`，实际已是 `cys` | 统一为 `cys` |
 | Day 13 / 14 | 未开始 | 按计划继续：包管理与磁盘、压缩与日志安全 |
 
