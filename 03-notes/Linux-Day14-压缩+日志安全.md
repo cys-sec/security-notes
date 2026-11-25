@@ -137,3 +137,62 @@ sudo ss -tulnp
 - [ ] `rsync -av ~/text0/ /tmp/rsync-test/`（#53）
 - [ ] 用户名改名 rocky → cys
 - [ ] crash 记录观察（`last -x`、`journalctl -b -1 -p err`）
+
+---
+
+## 九、手机端知识点汇总（2026-11-25 结业复习）
+
+> 来源：手机端整理（网络排查 / 包管理 / SSH 密钥 / 重定向）；已合并。⚠️ 为修正/补充。
+
+### 1. 网络排查
+
+- `ip link`：网卡链路层（网卡、MAC、UP/DOWN）；`ip addr`：IP 地址；`ip route`：路由表
+- `ip route get 目标IP`：查本机去往目标的路径，`via` 后面是网关——**`get` 后面写目标 IP，不是网关 IP**
+- `traceroute`：逐跳路径，第一跳一般是网关；**能通 ≠ DNS 正常**（DNS 是另一个服务）
+- `ss -tlnp`：监听端口/socket（替代 netstat），表头 `State / Recv-Q / Send-Q / Local / Peer / Process`
+  - ⚠️ 修正：**`Netid` 列只在混用协议时出现**（如 `ss -tulnp` 同时查 TCP+UDP），`-tlnp` 输出里没有这一列
+  - `0.0.0.0:22` 所有网卡监听；`127.0.0.1:22` 仅本机；`0.0.0.0:*` 对端任意地址/端口
+- `lsof -i :22`：谁占用端口；表头 `COMMAND/PID/USER/FD/TYPE/NODE/NAME`
+  - FD：`0` 标准输入、`1` 标准输出、`2` 标准错误；3 以后是打开的 socket/文件，`3u` = 可读可写
+- `journalctl -f -u sshd`：实时跟踪 sshd 日志，`Ctrl+C` 退出
+  - `Accepted password` = 密码登录成功；`Accepted publickey` = 公钥免密成功
+  - `session opened` = 建立会话；`session closed` = 断开
+- `tty`：当前终端；`pts` 是 SSH/图形终端，`tty1`~`tty6` 是本地字符控制台
+- `who` / `w`：当前登录用户与终端（`w` 额外显示负载和正在执行的命令）
+
+### 2. 包管理（RPM 系）
+
+- `rpm -q 包名`：查是否已安装；`dnf` 自动解决依赖（**rpm 本身不解决依赖**）
+- `df -h`：磁盘挂载使用率；`inode`：记录文件元信息（权限、大小、数据块位置），**不存文件名和内容**
+- `lsblk`：块设备/分区；`findmnt`：挂载信息
+
+### 3. SSH 密钥与免密（重点）
+
+```bash
+ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519_lab -N '' -C 'lab-key'
+```
+
+- `-t ed25519`：算法；`-f` 自定义文件名（**防覆盖旧密钥**）；`-N ''` 私钥无密码；`-C` 注释
+- ⚠️ 补充：ed25519 更现代、密钥短；RSA 2048+ 仍通用（老系统兼容性更好）
+- 生成一对：`id_ed25519_lab`（私钥，600，绝不外传）、`id_ed25519_lab.pub`（公钥，可外发）
+
+```bash
+ssh-copy-id -i ~/.ssh/id_ed25519_lab.pub rocky@10.0.0.150
+ssh -i ~/.ssh/id_ed25519_lab rocky@10.0.0.150 'whoami'
+```
+
+- `ssh-copy-id`：把公钥追加到远端 `~/.ssh/authorized_keys`
+- `ssh -i 私钥`：指定私钥登录（**自定义命名的密钥必须加 `-i`**）；`whoami` 用来验证免密成功
+- `authorized_keys`（服务端，存别人的公钥）vs `known_hosts`（客户端，记录连过的主机身份，防中间人）
+- 权限要求：`~/.ssh` 700、`authorized_keys` 600，权限过大 ssh 会拒绝
+- `scp` 全量复制；`rsync` 增量同步（只传变化部分）
+
+### 4. 重定向
+
+- `2>/dev/null`：把 2 号 FD（标准错误）丢弃，不打印报错
+
+### 5. 其他
+
+- `curl -v` 详细访问调试；`curl -w` 自定义输出（耗时/状态码/远端 IP）
+- `127.0.0.1` 回环地址仅本机；`0.0.0.0` 监听本机所有网卡
+- 网关：跨网段出口，与主机同网段，负责转发到其他网段
