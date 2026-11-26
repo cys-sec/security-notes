@@ -48,7 +48,7 @@ ssh rocky@10.0.0.150 'md5sum /tmp/text0.tar.gz'
 - 实测：本地 `4fad6d39394eb50a741e49ffc9f93f75`，对端 `4fad6d39394eb50a741e49fc9f93f75` → **一致，传输完整**；scp 显示 `12MB 118.5MB/s`
 - 第一次 `scp` 时看到 usage 提示（多半是命令没敲全），重敲后正常
 
-### rsync（增量同步，命令已收录，待实操）
+### rsync（增量同步，已实操 2026-11-26）
 
 ```bash
 mkdir -p /tmp/rsync-test
@@ -61,6 +61,15 @@ rsync -av ~/text0/ /tmp/rsync-test/
 - **关键坑**：**源路径结尾的 `/`**——`~/text0/` 复制目录**内容**；`~/text0` 复制**目录本身**（目标里会多一层 `text0/`）。先用 `--dry-run` 看要动哪些文件，再实跑
 - 其他常用：`-z` 传输压缩、`--delete` 让目标与源完全一致（**危险，务必先 dry-run**）、`-n` 等同 `--dry-run`
 - 远程写法：`rsync -av ~/text0/ rocky@10.0.0.150:/tmp/rsync-test/`（走 SSH，可配合 `-e 'ssh -i ~/.ssh/id_ed25519_lab'`）
+
+**实测结果（2026-11-26）**：
+
+- `rsync -av --dry-run` 正常列出要传的文件（`./`、`text1`、`etc-full/…`）
+- 实跑到 `/tmp/rsync-test/` 与 `~/rsync-test/` 都完成：`du -sh ~/rsync-test` = **50M**，`ls` 里是 `etc/ etc-full/ perm-lab/ text1` 结构正确（尾斜杠生效，没有多一层 `text0/`）
+- 但 `etc-full/shadow`、`gshadow`（0000 权限）读不了 → rsync 报 **`code 23`（部分文件未传）**，与 tar/zip 同一个原因
+- 注意：`--exclude='etc-full/shadow'` 在 rsync 3.1.3 上**没有生效**（仍尝试打开该文件）；改用**裸文件名** `--exclude=shadow --exclude=gshadow`，或直接 `sudo rsync`，`echo $?` 应为 0
+- `-a` 会保留目录时间：目标 `/tmp/rsync-test` 的 mtime 显示 `11月18 21:56`（源目录时间），**不要误以为"目录不存在"**——用 `ls -ld` 看目录本身
+- 另：`awk 'rsync'` 不带文件时会读标准输入而"卡住"（Ctrl+C 退出），和 Day 5 的坑一样
 
 ---
 
