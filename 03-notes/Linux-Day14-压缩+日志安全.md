@@ -48,6 +48,20 @@ ssh rocky@10.0.0.150 'md5sum /tmp/text0.tar.gz'
 - 实测：本地 `4fad6d39394eb50a741e49ffc9f93f75`，对端 `4fad6d39394eb50a741e49fc9f93f75` → **一致，传输完整**；scp 显示 `12MB 118.5MB/s`
 - 第一次 `scp` 时看到 usage 提示（多半是命令没敲全），重敲后正常
 
+### rsync（增量同步，命令已收录，待实操）
+
+```bash
+mkdir -p /tmp/rsync-test
+rsync -av --dry-run ~/text0/ /tmp/rsync-test/
+rsync -av ~/text0/ /tmp/rsync-test/
+```
+
+- **语法**：`rsync -av 源/ 目标/`；`-a` 归档（递归 + 保留权限/时间/软链）、`-v` 详细、`--dry-run` 只演练不写入
+- **作用**：**增量**同步，只传"有变化的部分"（scp 是全量复制），适合备份、迁移、镜像
+- **关键坑**：**源路径结尾的 `/`**——`~/text0/` 复制目录**内容**；`~/text0` 复制**目录本身**（目标里会多一层 `text0/`）。先用 `--dry-run` 看要动哪些文件，再实跑
+- 其他常用：`-z` 传输压缩、`--delete` 让目标与源完全一致（**危险，务必先 dry-run**）、`-n` 等同 `--dry-run`
+- 远程写法：`rsync -av ~/text0/ rocky@10.0.0.150:/tmp/rsync-test/`（走 SSH，可配合 `-e 'ssh -i ~/.ssh/id_ed25519_lab'`）
+
 ---
 
 ## 三、ssh-keygen + 免密登录（#54）
@@ -185,7 +199,7 @@ ssh -i ~/.ssh/id_ed25519_lab rocky@10.0.0.150 'whoami'
 - `ssh -i 私钥`：指定私钥登录（**自定义命名的密钥必须加 `-i`**）；`whoami` 用来验证免密成功
 - `authorized_keys`（服务端，存别人的公钥）vs `known_hosts`（客户端，记录连过的主机身份，防中间人）
 - 权限要求：`~/.ssh` 700、`authorized_keys` 600，权限过大 ssh 会拒绝
-- `scp` 全量复制；`rsync` 增量同步（只传变化部分）
+- `scp` 全量复制；`rsync` 增量同步（只传变化部分，示例 `rsync -av ~/text0/ /tmp/rsync-test/`，注意源路径尾斜杠）
 
 ### 4. 重定向
 
